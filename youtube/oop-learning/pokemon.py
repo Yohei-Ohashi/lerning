@@ -1,9 +1,10 @@
 class Pokemon:
-    def __init__(self, name: str, hp: int, atk: int) -> None:
+    def __init__(self, name: str, hp: int, speed: int, atk: int) -> None:
         self._name = name
         self._hp = hp
         self._max_hp = hp * 2
         self._atk = atk
+        self._speed = speed
 
     @property
     def name(self) -> str:
@@ -12,6 +13,10 @@ class Pokemon:
     @property
     def hp(self) -> int:
         return self._hp
+    
+    @property
+    def speed(self) -> int:
+        return self._speed
 
     @hp.setter
     def hp(self, value: int) -> None:
@@ -36,7 +41,7 @@ class Pokemon:
 
 class Pikachu(Pokemon):
     def __init__(self) -> None:
-        super().__init__("ピカチュウ", 20, 10)
+        super().__init__("ピカチュウ", 20, 12, 10)
 
     def attack_message(self, target: "Pokemon") -> None:
         print(
@@ -46,7 +51,7 @@ class Pikachu(Pokemon):
 
 class Hitokage(Pokemon):
     def __init__(self) -> None:
-        super().__init__("ヒトカゲ", 18, 5)
+        super().__init__("ヒトカゲ", 18, 12, 5)
 
     def attack_message(self, target: "Pokemon") -> None:
         print(
