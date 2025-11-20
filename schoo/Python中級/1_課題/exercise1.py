@@ -24,7 +24,7 @@ OUTPUT_FILE_NAME = "output_file.xlsx"
 OUTPUT_FILE_PATH = Path(OUTPUT_DIR_PATH) / OUTPUT_FILE_NAME
 
 
-def get_file_list(dir_path) -> list[str]:
+def get_file_list(dir_path: str | Path) -> list[str]:
     """フォルダの中にあるExcelファイル一覧を取得"""
 
     input_path = Path(dir_path)
@@ -38,7 +38,7 @@ def get_file_list(dir_path) -> list[str]:
     return xlsx_file_list
 
 
-def make_dfs(dir_path, xlsx_file_list):
+def make_dfs(dir_path: str | Path, xlsx_file_list: list[str]) -> list[pd.DataFrame]:
     """各Excelファイル内の特定シートのみ取得"""
 
     df_list = []
@@ -51,7 +51,9 @@ def make_dfs(dir_path, xlsx_file_list):
     return df_list
 
 
-def output_excel(df_list, xlsx_file_list, output_file_path):
+def output_excel(
+    df_list: str | Path, xlsx_file_list: list[str], output_file_path: Path
+) -> None:
     """取得したシートを一つのExcelファイルにして保存"""
 
     output_file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -63,7 +65,7 @@ def output_excel(df_list, xlsx_file_list, output_file_path):
 
 
 # メイン処理
-def main():
+def main() -> None:
     # フォルダの中にあるExcelファイル一覧を取得
     xlsx_file_list = get_file_list(INPUT_DIR_PATH)
     print(xlsx_file_list)
