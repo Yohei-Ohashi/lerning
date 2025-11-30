@@ -213,27 +213,47 @@ def run():
     if not is_valid:
         messagebox.showwarning("入力エラー", error_message)
         return
-    
+
     try:
         # フォルダの中にあるExcelファイル一覧を取得
         xlsx_file_list = get_file_list(text_input1.get())
 
+        if not xlsx_file_list:
+            messagebox.showwarning("警告", "Excelファイルが見つかりませんでした。")
+            return
+
         # 各Excelファイル内の特定シートのみ取得
         df_list, skipped_files = make_dfs(text_input1.get(), xlsx_file_list, sheet_name_input.get())
 
+        if not df_list:
+            messagebox.showwarning("エラー", "読み込めるシートが1つもありませんでした。")
+            return
+
         # 取得したシートを一つのExcelファイルにして保存
         output_file_path = Path(OUTPUT_DIR_PATH) / output_file_name_input.get()
-        output_excel(df_list, xlsx_file_list, output_file_path)
+
+        try:
+            output_excel(df_list, xlsx_file_list, output_file_path)
+        except PermissionError:
+            messagebox.showwarning("エラー", f"ファイルを保存できませんでした。\n権限を確認してください。\n{output_file_path}")
+            return
+        except Exception as e:
+            messagebox.showwarning("エラー", f"ファイルの保存中にエラーが発生しました:\n{str(e)}")
+            return
 
         # 完了通知(スキップ情報も表示させる)
-        message = f"処理完了！\n保存先: \n{output_file_path}"
+        message = f"処理完了！\n保存先: \n{output_file_path}\n\n読み込んだファイル数: {len(df_list)}"
         if skipped_files:
-            message += f"\n\nスキップされたファイル:\n" + "\n".join(skipped_files)
-        messagebox.showinfo("info", message)
+            message += f"\n\nスキップされたファイル ({len(skipped_files)}件):\n" + "\n".join(skipped_files)
+        messagebox.showinfo("完了", message)
 
+    except FileNotFoundError as e:
+        messagebox.showerror("エラー", f"ファイルが見つかりませんでした:\n{str(e)}")
+    except PermissionError as e:
+        messagebox.showerror("エラー", f"アクセス権限がありません:\n{str(e)}")
     except Exception as e:
         # エラーをユーザーに表示
-        messagebox.showerror("エラー", f"処理中にエラーが発生しました:\n{str(e)}")
+        messagebox.showerror("エラー", f"予期しないエラーが発生しました:\n{str(e)}")
 
 def close_window():
     """ウィンドウを閉じる関数"""
