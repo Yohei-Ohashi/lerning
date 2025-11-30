@@ -180,18 +180,26 @@ def output_excel(
 
 
 def run():
-    # フォルダの中にあるExcelファイル一覧を取得
-    xlsx_file_list = get_file_list(text_input1.get())
+    try:
+        # フォルダの中にあるExcelファイル一覧を取得
+        xlsx_file_list = get_file_list(text_input1.get())
 
-    # 各Excelファイル内の特定シートのみ取得
-    df_list = make_dfs(text_input1.get(), xlsx_file_list, sheet_name_input.get())
+        # 各Excelファイル内の特定シートのみ取得
+        df_list, skipped_files = make_dfs(text_input1.get(), xlsx_file_list, sheet_name_input.get())
 
-    # 取得したシートを一つのExcelファイルにして保存
-    output_file_path = Path(OUTPUT_DIR_PATH) / output_file_name_input.get()
-    output_excel(df_list, xlsx_file_list, output_file_path)
+        # 取得したシートを一つのExcelファイルにして保存
+        output_file_path = Path(OUTPUT_DIR_PATH) / output_file_name_input.get()
+        output_excel(df_list, xlsx_file_list, output_file_path)
 
-    # 完了通知
-    messagebox.showinfo("info", f"処理完了！\n保存先: \n{output_file_path}")
+        # 完了通知(スキップ情報も表示させる)
+        message = f"処理完了！\n保存先: \n{output_file_path}"
+        if skipped_files:
+            message += f"\n\nスキップされたファイル:\n" + "\n".join(skipped_files)
+        messagebox.showinfo("info", message)
+
+    except Exception as e:
+        # エラーをユーザーに表示
+        messagebox.showerror("エラー", f"処理中にエラーが発生しました:\n{str(e)}")
 
 def close_window():
     """ウィンドウを閉じる関数"""
