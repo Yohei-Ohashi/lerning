@@ -81,17 +81,24 @@ def btn_select_dir() -> None:
     if dir_path:  # ユーザーがキャンセルしなかった場合
         text_input1.set(dir_path)
 
-        # ファイル一覧を取得
-        file_list = get_file_list(dir_path)
+        try:
+            # ファイル一覧を取得
+            file_list = get_file_list(dir_path)
 
-        # text2にファイル一覧を表示
-        text2.delete(1.0, tk.END)  # 既存の内容をクリア
-        if file_list:
-            # 各ファイル名を改行区切りで表示
-            file_list_text = "\n".join(file_list)
-            text2.insert(1.0, file_list_text)
-        else:
-            text2.insert(1.0, "Excelファイルが見つかりませんでした。")
+            # text2にファイル一覧を表示
+            text2.delete(1.0, tk.END)  # 既存の内容をクリア
+            if file_list:
+                # 各ファイル名を改行区切りで表示
+                file_list_text = "\n".join(file_list)
+                text2.insert(1.0, file_list_text)
+            else:
+                text2.insert(1.0, "Excelファイルが見つかりませんでした。")
+        
+        except Exception as e:
+            # エラーをユーザーに表示
+            messagebox.showerror("エラー", f"ファイル一覧の取得に失敗しました:\n{str(e)}")
+            text2.delete(1.0, tk.END)
+            text2.insert(1.0, "エラーが発生しました。")
 
 
 def get_file_list(dir_path: str | Path) -> list[str]:
