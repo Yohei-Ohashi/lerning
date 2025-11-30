@@ -186,7 +186,34 @@ def output_excel(
             df.to_excel(writer, sheet_name=sheet_name)
 
 
+def validate_inputs() -> tuple[bool, str]:
+    """入力値の検証を行う
+
+    Returns:
+        tuple[bool, str]: (検証成功かどうか、 エラーメッセージ)
+    """
+    # フォルダが選択されているか確認
+    if not text_input1.get().strip():
+        return False, "フォルダを選択してください。"
+    
+    # シート名が入力されているか確認
+    if not sheet_name_input.get().strip():
+        return False, "取得するシート名を入力してください。"
+    
+    # 出力ファイル名が入力されているか確認
+    if not output_file_name_input.get().strip():
+        return False, "出力ファイル名を入力してください。"
+    
+    return True, ""
+
+
 def run():
+    # 入力値の検証
+    is_valid, error_message = validate_inputs()
+    if not is_valid:
+        messagebox.showwarning("入力エラー", error_message)
+        return
+    
     try:
         # フォルダの中にあるExcelファイル一覧を取得
         xlsx_file_list = get_file_list(text_input1.get())
