@@ -167,7 +167,7 @@ def make_dfs(dir_path: str | Path, xlsx_file_list: list[str], sheet_name: str) -
 
 
 def output_excel(
-    df_list: str | Path, xlsx_file_list: list[str], output_file_path: Path
+    df_list: list[pd.DataFrame], xlsx_file_list: list[str], output_file_path: Path
 ) -> None:
     """取得したシートを一つのExcelファイルにして保存"""
 
