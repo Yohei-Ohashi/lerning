@@ -20,6 +20,7 @@
 """
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import pandas as pd
 
 # 定数定義
@@ -109,12 +110,15 @@ def make_target_df() -> pd.DataFrame:
             if target_file.exists():
                 print(f"{year}年{month}月のデータを追加します👌")
                 df = pd.read_csv(target_file)
-
+                
+                # データフレームの加工
                 # 市区町村名を反映させる
                 df_pref_mst = make_pref_mst_df(year)
                 df = pd.merge(
                     df, df_pref_mst[["citycode", "cityname"]], on="citycode", how="left"
                 )
+                # 年月フィールドを作成する
+                df["yearmonth"] = f"{year}-{month}"
 
                 df_list.append(df)
             else:
@@ -128,6 +132,12 @@ def main():
     df = make_target_df()
 
     print(df)
+    
+    # プロットする
+    fig = plt.figure()
+    ax = fig.add_subplot()
+    
+    plt.show()
 
 
 if __name__ == "__main__":
