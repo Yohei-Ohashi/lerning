@@ -4,9 +4,9 @@
 要件：
 - 2019年~2021年における、東京都にどの程度人が滞在していたのかを記録したデータがあります
 - なお、以下ごとにデータが記録されています：
-  * 各地域(千代田区・中央区、など)
-  * 休日 or 平日 or 全日
-  * 昼 or 深夜 or 終日
+    - 各地域(千代田区・中央区、など)
+    - 休日 or 平日 or 全日
+    - 昼 or 深夜 or 終日
 - このデータを読み込み、横軸に年月、縦軸に滞在人口をプロットしてください
 
 データソース：
@@ -16,11 +16,13 @@
 
 """ TODO
 - [x] ダウンロードしたデータを加工してプロット用のデータフレームを作成する
+- [ ] プロットしたい対象を抽出したデータフレームを作成する
 - [ ] プロットする
 """
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import openpyxl
 import pandas as pd
 
 # 定数定義
@@ -110,7 +112,7 @@ def make_target_df() -> pd.DataFrame:
             if target_file.exists():
                 print(f"{year}年{month}月のデータを追加します👌")
                 df = pd.read_csv(target_file)
-                
+
                 # データフレームの加工
                 # 市区町村名を反映させる
                 df_pref_mst = make_pref_mst_df(year)
@@ -127,16 +129,51 @@ def make_target_df() -> pd.DataFrame:
     return df_combined
 
 
+def df_filter(
+    df: pd.DataFrame, cityname: str, dayflag: int, timezone: int
+) -> pd.DataFrame:
+    # プロットしたい対象を抽出したデータフレームを作成する
+    # 1. 市区町村の部分一致で絞る条件を作成
+    cityname_filtered = df["cityname"].str.contains(cityname)
+    # 2. 日付タイプで絞る条件を作成 (0: 休日, 1: 平日, 2: 全日)
+    dayflag_filtered = df["dayflag"] == dayflag
+    # 3. 時間帯で絞る条件を作成 (0: 昼, 1: 深夜, 3: 終日)
+    timezone_filtered = df["timezone"] == timezone
+    # 　条件を組み合わせてデータフレームを作成する
+    df_filtered = df[cityname_filtered & dayflag_filtered & timezone_filtered]
+    df_filtered = df_filtered[["yearmonth", "population"]].groupby("yearmonth").sum()
+
+    return df_filtered
+
+
 def main():
     # データを一つのデータフレームにまとめる
     df = make_target_df()
 
+    # 動作確認用だから後で消す
+    df.info()
     print(df)
-    
+
+    # プロットしたい対象を抽出したデータフレームを作成する
+    df_target1 = df_filter(df, "千代田区", 2, 0)
+    df_target2 = df_filter(df, "新宿区", 2, 0)
+    df_target3 = df_filter(df, "町田市", 2, 0)
+    print(df_target1)
+
     # プロットする
     fig = plt.figure()
+    fig.suptitle("People flow population per month")
+
     ax = fig.add_subplot()
+    # pandas の Series を plot() に渡すと、Series のインデックスが自動的に x 軸として使われる
+    ax.plot(df_target1["population"])
+    ax.plot(df_target2["population"])
+    ax.plot(df_target3["population"])
     
+    ax.set_xlabel("month")
+    ax.set_ylabel("population")
+    plt.xticks(rotation=50)
+
     plt.show()
 
 
