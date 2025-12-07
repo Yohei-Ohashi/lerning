@@ -37,6 +37,16 @@ TARGET_FILE_NAME = "monthly_mdp_mesh1km.csv.zip"
 # prefcode_citycode_masterをダウンロードし、解凍した中身をinputに展開することが前提
 INPUT_PREFCODE_MST_DIR_NAME = "input/prefcode_citycode_master"
 
+# 日付タイプ用
+DAYFLAG_HOLIDAY = 0  # 休日
+DAYFLAG_WEEKDAY = 1  # 平日
+DAYFLAG_ALL = 2  # 全日
+
+# 時間帯用
+TIMEZONE_DAY = 0  # 昼
+TIMEZONE_NIGHT = 1  # 深夜
+TIMEZONE_ALL = 2  # 終日
+
 
 def make_pref_mst_df(year: str) -> pd.DataFrame:
     """都道府県・市区町村マスターデータを読み込み、指定年に対応するデータフレームを作成する関数
@@ -129,19 +139,41 @@ def make_target_df() -> pd.DataFrame:
     return df_combined
 
 
-def df_filter(
-    df: pd.DataFrame, cityname: str, dayflag: int, timezone: int
-) -> pd.DataFrame:
-    # プロットしたい対象を抽出したデータフレームを作成する
+def plot_df_filter(
+    df: pd.DataFrame, ax: plt.Axes, cityname: str, dayflag: int, timezone: int
+) -> None:
+    """指定された条件でデータフレームをフィルタリングし、グラフにプロットする関数
+
+    市区町村名、日付タイプ、時間帯の条件でデータフレームを絞り込み、
+    年月ごとの人口データを集計してグラフにプロットする。
+
+    Args:
+        df (pd.DataFrame): フィルタリング対象のデータフレーム
+        ax (plt.Axes): プロット先のAxesオブジェクト
+        cityname (str): 市区町村名（部分一致で検索）
+        dayflag (int): 日付タイプ (0: 休日, 1: 平日, 2: 全日)
+        timezone (int): 時間帯 (0: 昼, 1: 深夜, 2: 終日)
+
+    Returns:
+        pd.Series: フィルタリング後の年月別人口集計データ
+    """
     # 1. 市区町村の部分一致で絞る条件を作成
     cityname_filtered = df["cityname"].str.contains(cityname)
     # 2. 日付タイプで絞る条件を作成 (0: 休日, 1: 平日, 2: 全日)
     dayflag_filtered = df["dayflag"] == dayflag
-    # 3. 時間帯で絞る条件を作成 (0: 昼, 1: 深夜, 3: 終日)
+    # 3. 時間帯で絞る条件を作成 (0: 昼, 1: 深夜, 2: 終日)
     timezone_filtered = df["timezone"] == timezone
     # 　条件を組み合わせてデータフレームを作成する
     df_filtered = df[cityname_filtered & dayflag_filtered & timezone_filtered]
-    df_filtered = df_filtered[["yearmonth", "population"]].groupby("yearmonth").sum()
+    df_filtered = (
+        df_filtered[["yearmonth", "population"]]
+        .groupby("yearmonth")
+        .sum()["population"]
+    )
+
+    # プロットするAxesオブジェクトを作成する
+    # pandas の Series を plot() に渡すと、Series のインデックスが自動的に x 軸として使われる
+    ax.plot(df_filtered["population"], label=cityname)
 
     return df_filtered
 
@@ -150,30 +182,26 @@ def main():
     # データを一つのデータフレームにまとめる
     df = make_target_df()
 
-    # 動作確認用だから後で消す
-    df.info()
-    print(df)
-
-    # プロットしたい対象を抽出したデータフレームを作成する
-    df_target1 = df_filter(df, "千代田区", 2, 0)
-    df_target2 = df_filter(df, "新宿区", 2, 0)
-    df_target3 = df_filter(df, "町田市", 2, 0)
-    print(df_target1)
-
     # プロットする
+    # matplotlibで日本語を表示するための設定
+    # 複数のフォントをリストで指定すると、利用可能な最初のフォントが自動的に使われます
+    plt.rcParams["font.family"] = ["Hiragino Sans", "Yu Gothic", "MS Gothic"]
+    # Figureオブジェクトの生成
     fig = plt.figure()
     fig.suptitle("People flow population per month")
 
+    # Axesオブジェクトの生成
     ax = fig.add_subplot()
-    # pandas の Series を plot() に渡すと、Series のインデックスが自動的に x 軸として使われる
-    ax.plot(df_target1["population"])
-    ax.plot(df_target2["population"])
-    ax.plot(df_target3["population"])
-    
     ax.set_xlabel("month")
     ax.set_ylabel("population")
     plt.xticks(rotation=50)
 
+    # 指定した条件でデータをフィルタリングし、グラフにプロットする
+    plot_df_filter(df, ax, "千代田区", dayflag=DAYFLAG_WEEKDAY, timezone=TIMEZONE_DAY)
+    plot_df_filter(df, ax, "新宿区", dayflag=DAYFLAG_WEEKDAY, timezone=TIMEZONE_DAY)
+    plot_df_filter(df, ax, "町田市", dayflag=DAYFLAG_WEEKDAY, timezone=TIMEZONE_DAY)
+
+    ax.legend()
     plt.show()
 
 
