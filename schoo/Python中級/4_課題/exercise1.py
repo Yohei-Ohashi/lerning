@@ -89,9 +89,10 @@ def main():
     # STEP1. スクレイピング
     # HTMLを取得する
     html = get_page_html()
-    print(html)
 
     # HTMLを解析
+    soup = BeautifulSoup(html, "html.parser")
+    print(soup)
 
     # 情報を抽出
 
