@@ -45,3 +45,58 @@ https://schoo.jp/class/category/programming/?sort=featured
 - Webスクレイピングを行う際は、サーバーに負荷をかけないよう適切な間隔を設ける
 - サイトの利用規約を確認し、遵守すること
 """
+
+from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+
+# 定数定義
+TARGET_URL = "https://schoo.jp/class/category/programming/?sort=featured"
+
+# User-Agent情報は調べて記述する
+USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+
+
+def get_page_html(url=TARGET_URL) -> str:
+    """
+    Seleniumを使って指定されたURLからHTMLを取得する関数
+
+    引数:
+        url (str): 取得するページのURL（デフォルトはTARGET_URL）
+
+    戻り値:
+        str: ページのHTMLソース（文字列）
+    """
+    options = Options()
+    options.add_argument("--headless")
+    # User-Agentを設定（schooのボット判定を回避するため）
+    options.add_argument(f"--user-agent={USER_AGENT}")
+
+    # Chromeドライバーを起動
+    driver = webdriver.Chrome(options=options)
+
+    try:
+        # 情報を取得するためにURLにアクセス
+        driver.get(url)
+        html = driver.page_source.encode("utf-8")
+        return html
+    finally:
+        # 必ずブラウザを閉じる（エラーが起きても閉じる）
+        driver.quit()
+
+
+def main():
+    # STEP1. スクレイピング
+    # HTMLを取得する
+    html = get_page_html()
+    print(html)
+
+    # HTMLを解析
+
+    # 情報を抽出
+
+    # STEP2. データベース保存
+
+
+if __name__ == "__main__":
+    main()
