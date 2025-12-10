@@ -48,6 +48,7 @@ https://schoo.jp/class/category/programming/?sort=featured
 
 import re
 
+import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -87,6 +88,73 @@ def get_page_html(url=TARGET_URL) -> str:
         driver.quit()
 
 
+def make_df_get_info(soup: BeautifulSoup) -> pd.DataFrame:
+    """
+    BeautifulSoupオブジェクトから授業情報を抽出してDataFrameを作成する関数
+
+    指定されたBeautifulSoupオブジェクトから授業の詳細情報（URL、タイトル、日付など）を
+    抽出し、pandas DataFrameとして返す。
+
+    Args:
+        soup (BeautifulSoup): 解析対象のHTMLを含むBeautifulSoupオブジェクト
+
+    Returns:
+        pd.DataFrame: 抽出された授業情報を含むDataFrame
+        カラム: 授業URL、授業タイトル、日付など
+    """
+    # 要素を取得
+    elems = soup.find_all(
+        "a",
+        class_=r"group pc:mx-0 mx-auto flex w-full max-w-[400px] min-w-[260px] shrink grow flex-col gap-[12px] duration-300 active:opacity-70",
+    )
+
+    get_info_list = []
+
+    for elem in elems:
+        # 1. 授業URL (Class URL)
+        # - 各授業の詳細ページへのリンクURL
+        cls_url = elem.attrs["href"]
+
+        # 2. 授業タイトル (Class Title)
+        # - 授業のタイトル名
+        cls_title = elem.find("h3").text
+
+        # 3. 日付 (Date)
+        # - 授業の日付情報
+        date_text = (
+            elem.find(
+                "div",
+                class_=r"text-neutral-deepgray flex h-[18px] items-center gap-[8px] text-[12px]",
+            )
+            .contents[2]
+            .text
+        )
+        # 「公開」を削除
+        date_text_clean = date_text.replace("公開", "").strip()
+
+        # 日本語の日付形式 例:「2025年9月8日」を「2025-09-08」形式に変換
+        # 正規表現で年、月、日を抽出
+        match = re.search(r"(\d+)年(\d+)月(\d+)日", date_text_clean)
+        if match:
+            year = match.group(1)  # 年を取得（例: "2025"）
+            month = match.group(2).zfill(2)  # 月を取得し、2桁にゼロ埋め（例: "09"）
+            day = match.group(3).zfill(2)  # 日を取得し、2桁にゼロ埋め（例: "08"）
+            date = f"{year}-{month}-{day}"  # ISO形式に変換（例: "2025-09-08"）
+        else:
+            date = ""
+
+        # 4. ハート数 (Number of Likes/Hearts)
+        # - 授業に付けられた「いいね」や「ハート」の数
+        like = elem.find("span", class_=r"text-neutral-darkgray text-[11px]").text
+
+        get_info_list.append(
+            {"cls_url": cls_url, "cls_title": cls_title, "date": date, "like": like}
+        )
+    df = pd.DataFrame(get_info_list)
+
+    return df
+
+
 def main():
     # STEP1. スクレイピング
     # HTMLを取得する
@@ -95,54 +163,10 @@ def main():
     # HTMLを解析
     soup = BeautifulSoup(html, "html.parser")
 
-    # 情報を抽出
-    # 要素を取得
-    elems = soup.find_all(
-        "a",
-        class_=r"group pc:mx-0 mx-auto flex w-full max-w-[400px] min-w-[260px] shrink grow flex-col gap-[12px] duration-300 active:opacity-70",
-    )
-    print(f"{len(elems)}件の要素を取得")
-    # 1. 授業URL (Class URL)
-    # - 各授業の詳細ページへのリンクURL
-    print(elems[0].attrs["href"])
-    cls_url = ""
+    # 情報を抽出してDataFrame化
+    df = make_df_get_info(soup)
+    print(df)
 
-    # 2. 授業タイトル (Class Title)
-    # - 授業のタイトル名
-    print(elems[0].find("h3").text)
-    cls_title = ""
-
-    # 3. 日付 (Date)
-    # - 授業の日付情報
-    date_text = (
-        elems[0]
-        .find(
-            "div",
-            class_=r"text-neutral-deepgray flex h-[18px] items-center gap-[8px] text-[12px]",
-        )
-        .contents[2]
-        .text
-    )
-    # 「公開」を削除
-    date_text_clean = date_text.replace("公開", "").strip()
-
-    # 日本語の日付形式「2025年9月8日」を「2025-09-08」形式に変換
-    # 正規表現で年、月、日を抽出
-    match = re.search(r"(\d+)年(\d+)月(\d+)日", date_text_clean)
-    if match:
-        year = match.group(1)  # 年を取得（例: "2025"）
-        month = match.group(2).zfill(2)  # 月を取得し、2桁にゼロ埋め（例: "09"）
-        day = match.group(3).zfill(2)  # 日を取得し、2桁にゼロ埋め（例: "08"）
-        date = f"{year}-{month}-{day}"  # ISO形式に変換（例: "2025-09-08"）
-    else:
-        date = ""
-    print(date)
-    date = ""
-
-    # 4. ハート数 (Number of Likes/Hearts)
-    # - 授業に付けられた「いいね」や「ハート」の数
-    print(elems[0].find("span", class_=r"text-neutral-darkgray text-[11px]").text)
-    like = ""
     # STEP2. データベース保存
 
     # 処理が長くて終わるタイミングがわからないので記述
