@@ -47,6 +47,8 @@ https://schoo.jp/class/category/programming/?sort=featured
 """
 
 import re
+import sqlite3
+from pathlib import Path
 
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -58,6 +60,12 @@ TARGET_URL = "https://schoo.jp/class/category/programming/?sort=featured"
 
 # User-Agent情報は調べて記述する
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+
+# 　ディレクトリ関連
+BASE_DIR = Path(__file__).parent
+# DB
+DB_DIR_NAME = "DB"
+MAKE_DB_FILE_NAME = "scraping.db"
 
 
 def get_page_html(url=TARGET_URL) -> str:
@@ -155,6 +163,28 @@ def make_df_get_info(soup: BeautifulSoup) -> pd.DataFrame:
     return df
 
 
+def save_sql(df: pd.DataFrame) -> None:
+    """スクレイピングで取得したデータをSQLiteデータベースに保存する
+
+    Args:
+        df (pd.DataFrame): スクレイピングで取得した授業情報のデータフレーム
+                        (cls_url, cls_title, date, like列を含む)
+    """
+    # STEP2. データベース保存
+    # データベースを作成
+    db_file = BASE_DIR / DB_DIR_NAME / MAKE_DB_FILE_NAME
+    db_file.parent.mkdir(parents=True, exist_ok=True)
+
+    con = sqlite3.connect(db_file)
+    cur = con.cursor()
+
+    # テーブルを作成する
+    table_name = "ScrapingData"
+    df.to_sql(table_name, con, if_exists="replace", index=False)
+
+    con.close()
+
+
 def main():
     # STEP1. スクレイピング
     # HTMLを取得する
@@ -165,9 +195,9 @@ def main():
 
     # 情報を抽出してDataFrame化
     df = make_df_get_info(soup)
-    print(df)
 
     # STEP2. データベース保存
+    save_sql(df)
 
     # 処理が長くて終わるタイミングがわからないので記述
     print("処理が終わりました!!")
