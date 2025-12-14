@@ -55,22 +55,93 @@
 
 import socket
 
-# サーバー側
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.bind(("127.0.0.1", 50007))
-server_socket.listen(1)
-print("[SERVER] Waiting for connection...")
-client_socket, server_address = server_socket.accept()
-print(f"[SERVER] クライアント接続確認:{server_address}")
 
-while True:
+def create_server_socket(host: str = "127.0.0.1", port: int = 50007) -> socket.socket:
+    """
+    サーバーソケットを作成し、指定されたホストとポートにバインドします。
+
+    引数:
+        host (str): サーバーのIPアドレス（デフォルト: 127.0.0.1）
+        port (int): サーバーのポート番号（デフォルト: 50007）
+
+    戻り値:
+        socket: 作成されたサーバーソケット
+    """
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind((host, port))
+    server_socket.listen(1)
+    return server_socket
+
+
+def receive_message(client_socket: socket.socket) -> str | None:
+    """クライアントからメッセージを受信する
+
+    Args:
+        client_socket (socket.socket): クライアントとの接続ソケット
+
+    Returns:
+        str | None: 受信したメッセージ文字列。接続が切断された場合はNone
+    """
     data_byte = client_socket.recv(1024)
     if not data_byte:
-        break
-    data_text = data_byte.decode("utf-8")
-    print(f"[CLIENT] {data_text}")
+        return None
+    return data_byte.decode("utf-8")
 
-    input_text = input(">")
-    client_socket.send(input_text.encode("utf-8"))
 
-client_socket.close()
+def send_message(client_socket: socket.socket, message: str):
+    """クライアントにメッセージを送信する
+
+    Args:
+        client_socket (socket.socket): クライアントとの接続ソケット
+        message (str): 送信するメッセージ文字列
+    """
+    client_socket.send(message.encode("utf-8"))
+
+
+def handle_client(
+    client_socket: socket.socket, client_address: tuple[str, int]
+) -> None:
+    """
+    クライアントとの通信を処理します。
+    メッセージの受信と送信を繰り返し実行します。
+
+    Args:
+        client_socket (socket): クライアントとの接続ソケット
+        client_address (tuple): クライアントのアドレス情報
+    """
+    print(f"[SERVER] クライアント接続確認:{client_address}")
+
+    while True:
+        # 受信
+        message = receive_message(client_socket)
+        if message is None:
+            break
+        print(f"[CLIENT] {message}")
+
+        # 送信
+        input_text = input(">")
+        send_message(client_socket, input_text)
+
+
+def main():
+    # サーバー側
+    server_socket = create_server_socket()
+    print("[SERVER] Waiting for connection...")
+
+    try:
+        # クライアントからの接続を待機し、接続を受け入れる
+        client_socket, client_address = server_socket.accept()
+
+        try:
+            handle_client(client_socket, client_address)
+        finally:
+            # クライアントソケットを閉じる(接続を終了)
+            client_socket.close()
+            print("[SERVER] クライアントソケットを閉じました")
+    finally:
+        server_socket.close()
+        print("[SERVER] サーバーソケットを閉じました")
+
+
+if __name__ == "__main__":
+    main()
