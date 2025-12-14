@@ -2,6 +2,17 @@ import socket
 import threading  # 【追加】スレッド処理に必要なモジュール
 
 
+# 【追加】接続しているすべてのクライアントを管理するリスト
+# このリストに各クライアントのソケットを保存しておくことで、
+# 後で「1つのクライアントからのメッセージを他の全クライアントに転送」できるようになる
+clients: list[socket.socket] = []
+
+# 【追加】複数のスレッドが同じリストにアクセスする際の競合を防ぐためのロック
+# 例:2つのスレッドが同時にリストに追加しようとすると問題が起きる可能性があるため、
+# ロックを使って「1つずつ順番に」処理するようにする
+clients_lock = threading.Lock()
+
+
 def create_server_socket(host: str = "127.0.0.1", port: int = 50007) -> socket.socket:
     """
     サーバーソケットを作成し、指定されたホストとポートにバインドします。
@@ -58,16 +69,37 @@ def handle_client(
     """
     print(f"[SERVER] クライアント接続確認:{client_address}")
 
-    while True:
-        # 受信
-        message = receive_message(client_socket)
-        if message is None:
-            break
-        print(f"[CLIENT] {message}")
+    # 【追加】このクライアントを管理リストに追加
+    # with clients_lock: ロックを取得(他のスレッドがリストを変更できないようにする)
+    # ロックを取得している間は、他のスレッドは待機する
+    with clients_lock:
+        clients.append(client_socket)
+        print(f"[SERVER] 現在の接続数: {len(clients)}")
 
-        # 送信
-        input_text = input(">")
-        send_message(client_socket, input_text)
+    try:
+        while True:
+            # 受信
+            message = receive_message(client_socket)
+            if message is None:
+                break
+            print(f"[CLIENT] {message}")
+
+            # 送信
+            input_text = input(">")
+            send_message(client_socket, input_text)
+    except Exception as e:
+        # エラーが発生した場合(接続エラーなど)
+        print(f"[SERVER] クライアント {client_address} でエラー: {e}")
+    finally:
+        # 【追加】クライアントが切断されたら、管理リストから削除
+        with clients_lock:
+            if client_socket in clients:
+                clients.remove(client_socket)
+                print(f"[SERVER] クライアント {client_address} を切断しました")
+                print(f"[SERVER] 現在の接続数: {len(clients)}")
+
+        # クライアントソケットを閉じる
+        client_socket.close()
 
 
 def main():
