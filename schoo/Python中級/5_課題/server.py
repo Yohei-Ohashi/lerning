@@ -56,6 +56,30 @@ def send_message(client_socket: socket.socket, message: str):
     client_socket.send(message.encode("utf-8"))
 
 
+# 【追加】ブロードキャスト機能: 1つのクライアントからのメッセージを他の全クライアントに転送
+def broadcast_message(message: str, sender_socket: socket.socket):
+    """１つのクライアントからのメッセージを、接続している他の全てのクライアントに転送する
+
+    Args:
+        message (str): 転送するメッセージ
+        sender_socket (socket.socket): メッセージを送信したクライアントのソケット(このクライアントには転送しない)
+
+    例: クライアントA、B、Cが接続していて、Aがメッセージを送った場合、BとCにメッセージを転送する
+        (Aには転送しない)
+    """
+    # ロックを取得: 他のスレッドがリストを変更できないようにする
+    with clients_lock:
+        # 接続しているすべてのクライアントに対して
+        for client in clients:
+            # メッセージを送ったクライアント自身には送らない
+            if client != sender_socket:
+                try:
+                    send_message(client, message)
+                except Exception as e:
+                    # 痩身に失敗した場合(クライアントが切断したなど)はエラーを表示
+                    print(f"[SERVER] メッセージ転送エラー: {e}")
+
+
 def handle_client(
     client_socket: socket.socket, client_address: tuple[str, int]
 ) -> None:
@@ -84,9 +108,13 @@ def handle_client(
                 break
             print(f"[CLIENT] {message}")
 
-            # 送信
-            input_text = input(">")
-            send_message(client_socket, input_text)
+            # 【追加】他のすべてのクライアントにメッセージを転送
+            # これにより、チャットルームのように動作する
+            broadcast_message(f"[{client_address}] {message}", client_socket)
+
+            # オプション: セーバー側からもメッセージを送りたい場合は以下をコメントアウト
+            # input_text = input(">")
+            # send_message(client_socket, input_text)
     except Exception as e:
         # エラーが発生した場合(接続エラーなど)
         print(f"[SERVER] クライアント {client_address} でエラー: {e}")
