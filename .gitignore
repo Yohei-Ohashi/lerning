@@ -13,6 +13,9 @@ wheels/
 # Virtual environments
 .venv
 
+# 環境変数ファイル
+.env
+
 # SQLite
 *.sqlite3
 *.db
