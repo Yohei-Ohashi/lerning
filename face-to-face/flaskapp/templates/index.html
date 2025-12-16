@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chat</title>
+</head>
+<body>
+  <h1>AI Chatbot</h1>
+  
+  <!-- 入力フォーム -->
+  <form method="POST">
+    <input type="text" name="user_input">
+    <button type="submit">送信</button>
+  </form>
+
+  <!-- 結果表示エリア -->
+  <p>あなた: {{ user_input }}</p>
+  <p>AI: {{ response }}</p>
+</body>
+</html>
